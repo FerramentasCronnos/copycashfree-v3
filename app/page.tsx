@@ -18,9 +18,9 @@ export default function LandingPage() {
         <h1 className="text-2xl font-bold text-center mb-2">
         Ex-Negativos No Trading
           <br />
-          Agora Lucram R$300-R$1.250/Mês Com O Método Copy Cash
+          <span className="text-blue-500"> </span>Agora Lucram R$300-R$1.250/Mês Com O Método Copy Cash </span>
           <br />
-          <span className="text-blue-500">E Você Pode Acessar Agora Totalmente Grátis</span>
+          E Você Pode Acessar Agora Totalmente Grátis
         </h1>
 
         {/* Imagem principal */}
