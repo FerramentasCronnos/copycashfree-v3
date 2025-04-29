@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,14 +17,48 @@ interface LeadCaptureModalProps {
   webhookUrl: string
 }
 
+interface UTMParams {
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_term?: string
+  utm_content?: string
+}
+
 // Atualizar a função para receber o webhook como prop
 export function LeadCaptureModal({ isOpen, onOpenChange, telegramLink, webhookUrl }: LeadCaptureModalProps) {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [utmParams, setUtmParams] = useState<UTMParams>({})
   const router = useRouter()
   const { toast } = useToast()
+
+  // Função para extrair parâmetros UTM da URL
+  const getUTMParams = () => {
+    if (typeof window === 'undefined') return {}
+    
+    const params = new URLSearchParams(window.location.search)
+    const utmParams: UTMParams = {}
+    
+    // Lista de parâmetros UTM que queremos capturar
+    const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']
+    
+    utmKeys.forEach(key => {
+      const value = params.get(key)
+      if (value) {
+        utmParams[key as keyof UTMParams] = value
+      }
+    })
+    
+    return utmParams
+  }
+
+  // Capturar parâmetros UTM quando o componente montar
+  useEffect(() => {
+    setUtmParams(getUTMParams())
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,19 +70,27 @@ export function LeadCaptureModal({ isOpen, onOpenChange, telegramLink, webhookUr
         throw new Error("Por favor, preencha todos os campos")
       }
 
+      // Preparar dados para envio
+      const formData = {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        source: window.location.href,
+        timestamp: new Date().toISOString(),
+        // Incluir parâmetros UTM
+        ...utmParams,
+        // Adicionar campos específicos do ActiveCampaign
+        tags: ['copy-cash', 'landing-page'],
+        list: '1', // Substitua pelo ID da sua lista no ActiveCampaign
+      }
+
       // Enviar os dados para o webhook
       const response = await fetch(webhookUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim(),
-          phone: phone.trim(),
-          source: window.location.href,
-          timestamp: new Date().toISOString(),
-        }),
+        body: JSON.stringify(formData),
       })
 
       if (!response.ok) {
